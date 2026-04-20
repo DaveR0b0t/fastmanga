@@ -1,0 +1,51 @@
+# FastManga Configuration File
+# This file is automatically created on first run
+# Location: ~/.config/fastmanga/config.yaml
+
+general:
+  default_provider: mangadex
+  image_renderer: chafa
+  use_fzf: true
+  auto_sync: true
+  log_level: INFO
+
+reading:
+  page_fit: width
+  background_color: black
+  zoom_level: 100
+  reading_direction: ltr
+  double_page_mode: false
+  show_page_numbers: true
+
+downloads:
+  download_dir: ~/Manga
+  quality: high
+  format: cbz
+  concurrent_downloads: 3
+  merge_chapters: false
+  keep_archive: true
+  create_metadata: true
+
+providers:
+  mangadex_language: en
+  mangadex_data_saver: false
+  mangasee_enabled: true
+  use_fallback: true
+
+mal:
+  auto_update: true
+  auto_sync_interval: 3600
+  client_id: null
+  access_token: null
+  refresh_token: null
+
+worker:
+  enabled: true
+  check_interval: 300
+  max_retries: 3
+  retry_delay: 60
+
+cache:
+  enabled: true
+  max_size: 1024
+  ttl: 86400
