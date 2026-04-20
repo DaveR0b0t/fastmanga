@@ -1,0 +1,16 @@
+FastManga Project Overview
+
+FastManga is an educational terminal manga reader and downloader prototype.
+
+Current repo contents:
+- Python package with CLI entry points
+- Config, database, and manga models
+- MangaDex provider with offline fallback data
+- Downloader and reader utilities
+- Basic tests and install helper
+- Supporting docs and examples
+
+Current repo identity:
+- Best suited as a learning project
+- Appropriate for experimentation and portfolio use
+- Not yet positioned as a finished production app
