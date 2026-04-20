@@ -14,14 +14,12 @@ class Database:
     """SQLite database manager for manga library."""
 
     def __init__(self, db_path: Path):
-        """Initialize database connection."""
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
     @contextmanager
     def get_connection(self) -> Iterator[sqlite3.Connection]:
-        """Get database connection with automatic commit and rollback."""
         conn = sqlite3.connect(str(self.db_path))
         conn.row_factory = sqlite3.Row
         try:
@@ -34,10 +32,8 @@ class Database:
             conn.close()
 
     def _init_db(self) -> None:
-        """Initialize database schema."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS manga (
                     id TEXT PRIMARY KEY,
@@ -65,7 +61,6 @@ class Database:
                     updated_at TEXT NOT NULL
                 )
             """)
-
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS chapters (
                     id TEXT PRIMARY KEY,
@@ -83,7 +78,6 @@ class Database:
                     FOREIGN KEY (manga_id) REFERENCES manga(id) ON DELETE CASCADE
                 )
             """)
-
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS reading_history (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +90,6 @@ class Database:
                     FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
                 )
             """)
-
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS bookmarks (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,7 +102,6 @@ class Database:
                     FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
                 )
             """)
-
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_manga_title ON manga(title)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_manga_status ON manga(reading_status)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_chapters_manga ON chapters(manga_id)")
@@ -125,13 +117,11 @@ class Database:
         data["genres"] = self._decode_json_list(data.get("genres"))
         data["tags"] = self._decode_json_list(data.get("tags"))
         data["is_favorite"] = bool(data["is_favorite"])
-
         manga = Manga.from_dict(data)
         manga.chapters = self.get_chapters(manga.id)
         return manga
 
     def add_manga(self, manga: Manga) -> None:
-        """Add or update a manga in the database."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             data = manga.to_dict()
@@ -139,7 +129,6 @@ class Database:
             data["genres"] = json.dumps(data["genres"])
             data["tags"] = json.dumps(data["tags"])
             data["is_favorite"] = int(data["is_favorite"])
-
             cursor.execute("""
                 INSERT OR REPLACE INTO manga (
                     id, title, alt_titles, description, cover_url, author, artist,
@@ -157,7 +146,6 @@ class Database:
             """, data)
 
     def get_manga(self, manga_id: str) -> Optional[Manga]:
-        """Get a manga by ID."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM manga WHERE id = ?", (manga_id,))
@@ -165,66 +153,54 @@ class Database:
             return self._deserialize_manga_row(row) if row else None
 
     def get_all_manga(self, status: Optional[ReadingStatus] = None) -> List[Manga]:
-        """Get all manga, optionally filtered by reading status."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             if status:
-                cursor.execute(
-                    "SELECT * FROM manga WHERE reading_status = ? ORDER BY title",
-                    (status.value,),
-                )
+                cursor.execute("SELECT * FROM manga WHERE reading_status = ? ORDER BY title", (status.value,))
             else:
                 cursor.execute("SELECT * FROM manga ORDER BY title")
             return [self._deserialize_manga_row(row) for row in cursor.fetchall()]
 
     def search_manga(self, query: str) -> List[Manga]:
-        """Search manga by title."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM manga WHERE title LIKE ? ORDER BY title",
-                (f"%{query}%",),
-            )
+            cursor.execute("SELECT * FROM manga WHERE title LIKE ? ORDER BY title", (f"%{query}%",))
             return [self._deserialize_manga_row(row) for row in cursor.fetchall()]
 
     def delete_manga(self, manga_id: str) -> None:
-        """Delete a manga from the database."""
         with self.get_connection() as conn:
             conn.execute("DELETE FROM manga WHERE id = ?", (manga_id,))
 
     def add_chapter(self, chapter: Chapter) -> None:
-        """Add or update a chapter."""
         with self.get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT OR REPLACE INTO chapters (
                     id, manga_id, number, title, volume, language,
                     pages_count, scanlation_group, publish_date,
                     is_downloaded, download_path, provider
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                chapter.id,
-                chapter.manga_id,
-                chapter.number,
-                chapter.title,
-                chapter.volume,
-                chapter.language,
-                chapter.pages_count,
-                chapter.scanlation_group,
-                chapter.publish_date.isoformat() if chapter.publish_date else None,
-                int(chapter.is_downloaded),
-                chapter.download_path,
-                chapter.provider,
-            ))
-
-    def get_chapters(self, manga_id: str) -> List[Chapter]:
-        """Get all chapters for a manga."""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM chapters WHERE manga_id = ? ORDER BY number",
-                (manga_id,),
+                """,
+                (
+                    chapter.id,
+                    chapter.manga_id,
+                    chapter.number,
+                    chapter.title,
+                    chapter.volume,
+                    chapter.language,
+                    chapter.pages_count,
+                    chapter.scanlation_group,
+                    chapter.publish_date.isoformat() if chapter.publish_date else None,
+                    int(chapter.is_downloaded),
+                    chapter.download_path,
+                    chapter.provider,
+                ),
             )
 
+    def get_chapters(self, manga_id: str) -> List[Chapter]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM chapters WHERE manga_id = ? ORDER BY number", (manga_id,))
             chapters = []
             for row in cursor.fetchall():
                 data = dict(row)
@@ -234,14 +210,7 @@ class Database:
                 chapters.append(Chapter(**data))
             return chapters
 
-    def add_to_history(
-        self,
-        manga_id: str,
-        chapter_id: str,
-        chapter_number: float,
-        page_number: int = 1,
-    ) -> None:
-        """Add a reading session to history."""
+    def add_to_history(self, manga_id: str, chapter_id: str, chapter_number: float, page_number: int = 1) -> None:
         with self.get_connection() as conn:
             conn.execute(
                 """
@@ -253,7 +222,6 @@ class Database:
             )
 
     def get_history(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """Get reading history."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -269,14 +237,7 @@ class Database:
             )
             return [dict(row) for row in cursor.fetchall()]
 
-    def add_bookmark(
-        self,
-        manga_id: str,
-        chapter_id: str,
-        page_number: int,
-        note: Optional[str] = None,
-    ) -> None:
-        """Add a bookmark."""
+    def add_bookmark(self, manga_id: str, chapter_id: str, page_number: int, note: Optional[str] = None) -> None:
         with self.get_connection() as conn:
             conn.execute(
                 """
@@ -287,7 +248,6 @@ class Database:
             )
 
     def get_bookmarks(self, manga_id: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get bookmarks, optionally filtered by manga."""
         query = """
             SELECT b.*, m.title as manga_title, c.number as chapter_number, c.title as chapter_title
             FROM bookmarks b
@@ -295,41 +255,57 @@ class Database:
             JOIN chapters c ON b.chapter_id = c.id
         """
         params: tuple[Any, ...] = ()
-
         if manga_id:
             query += " WHERE b.manga_id = ?"
             params = (manga_id,)
-
         query += " ORDER BY b.created_at DESC"
-
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(query, params)
             return [dict(row) for row in cursor.fetchall()]
 
     def get_stats(self) -> Dict[str, Any]:
-        """Get library statistics."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-
             stats: Dict[str, Any] = {}
-
             cursor.execute("SELECT COUNT(*) FROM manga")
             stats["total_manga"] = cursor.fetchone()[0]
-
             cursor.execute("SELECT COUNT(*) FROM chapters")
             stats["total_chapters"] = cursor.fetchone()[0]
-
             cursor.execute("SELECT COUNT(*) FROM manga WHERE reading_status = ?", (ReadingStatus.READING.value,))
             stats["currently_reading"] = cursor.fetchone()[0]
-
             cursor.execute("SELECT COUNT(*) FROM manga WHERE reading_status = ?", (ReadingStatus.COMPLETED.value,))
             stats["completed"] = cursor.fetchone()[0]
-
             cursor.execute("SELECT COUNT(*) FROM reading_history")
             stats["reading_sessions"] = cursor.fetchone()[0]
-
             cursor.execute("SELECT COUNT(*) FROM bookmarks")
             stats["bookmarks"] = cursor.fetchone()[0]
-
             return stats
+
+    def get_statistics(self) -> Dict[str, Any]:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM manga")
+            total_manga = cursor.fetchone()[0]
+            cursor.execute("SELECT COALESCE(SUM(chapters_read), 0) FROM manga")
+            total_chapters_read = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM manga WHERE is_favorite = 1")
+            favorites = cursor.fetchone()[0]
+            cursor.execute(
+                """
+                SELECT reading_status, COUNT(*) as count
+                FROM manga
+                WHERE reading_status IS NOT NULL
+                GROUP BY reading_status
+                """
+            )
+            by_status = {row[0]: row[1] for row in cursor.fetchall()}
+            return {
+                "total_manga": total_manga,
+                "total_chapters_read": total_chapters_read,
+                "favorites": favorites,
+                "by_status": by_status,
+            }
+
+    def get_reading_history(self, limit: int = 50) -> List[Dict[str, Any]]:
+        return self.get_history(limit=limit)
