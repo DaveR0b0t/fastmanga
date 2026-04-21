@@ -22,7 +22,13 @@ Not implemented yet:
 
 ## Install
 
-From a local checkout:
+Install directly from GitHub:
+
+```bash
+pip install git+https://github.com/DaveR0b0t/fastmanga.git
+```
+
+Install from a local checkout:
 
 ```bash
 python -m venv .venv
@@ -113,10 +119,6 @@ Format and lint:
 black fastmanga tests
 ruff check fastmanga tests
 ```
-
-## Notes for publishing
-
-This copy has been cleaned up to avoid fake repository links and overpromising feature lists. Before publishing, add your real repository URL in `pyproject.toml` if you want package metadata links to show on package indexes.
 
 ## License
 
