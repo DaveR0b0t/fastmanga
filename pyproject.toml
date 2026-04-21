@@ -52,6 +52,11 @@ dev = [
 fastmanga = "fastmanga.cli.main:cli"
 fmanga = "fastmanga.cli.main:cli"
 
+[project.urls]
+Homepage = "https://github.com/DaveR0b0t/fastmanga"
+Repository = "https://github.com/DaveR0b0t/fastmanga"
+Issues = "https://github.com/DaveR0b0t/fastmanga/issues"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["fastmanga*"]
